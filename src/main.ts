@@ -1,96 +1,182 @@
-import { jsPDF } from "jspdf";
-
-interface FormData {
-  username: string;
+interface ResumeData {
   name: string;
   email: string;
-  education: string;
-  workExperience: string;
+  education: Education[];
+  experience: Experience[];
   skills: string;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("resumeForm") as HTMLFormElement;
-  const resumePreview = document.getElementById(
-    "resumePreview"
-  ) as HTMLDivElement;
-  const shareDownloadLinks = document.getElementById(
-    "shareDownloadLinks"
-  ) as HTMLDivElement;
+interface Education {
+  degree: string;
+  institution: string;
+  gradYear: number;
+}
 
-  form.addEventListener("submit", (event) => {
+interface Experience {
+  jobTitle: string;
+  company: string;
+  years: number;
+}
+
+let educationEntries: Education[] = [];
+let experienceEntries: Experience[] = [];
+
+// Function to make fields editable
+function makeEditable(element: HTMLElement) {
+  element.setAttribute("contenteditable", "true");
+  element.focus();
+
+  element.addEventListener("blur", () => {
+    element.removeAttribute("contenteditable");
+  });
+}
+
+// Adding education inputs
+const educationSection = document.getElementById("education-section")!;
+const addEducationBtn = document.getElementById("add-education-btn")!;
+addEducationBtn.addEventListener("click", addEducationInput);
+
+function addEducationInput(): void {
+  const educationDiv = document.createElement("div");
+  educationDiv.classList.add("education-entry");
+  educationDiv.innerHTML = `
+    <label for="degree">Degree:</label>
+    <input type="text" class="degree" placeholder="B.Sc. Computer Science" required>
+    <label for="institution">Institution:</label>
+    <input type="text" class="institution" placeholder="Harvard University" required>
+    <label for="gradYear">Graduation Year:</label>
+    <input type="number" class="gradYear" placeholder="2020" required>
+  `;
+  educationSection.appendChild(educationDiv);
+}
+
+// Adding work experience inputs
+const experienceSection = document.getElementById("experience-section")!;
+const addExperienceBtn = document.getElementById("add-experience-btn")!;
+addExperienceBtn.addEventListener("click", addExperienceInput);
+
+function addExperienceInput(): void {
+  const experienceDiv = document.createElement("div");
+  experienceDiv.classList.add("experience-entry");
+  experienceDiv.innerHTML = `
+    <label for="jobTitle">Job Title:</label>
+    <input type="text" class="jobTitle" placeholder="Software Engineer" required>
+    <label for="company">Company:</label>
+    <input type="text" class="company" placeholder="Tech Corp" required>
+    <label for="years">Years:</label>
+    <input type="number" class="years" placeholder="2" required>
+  `;
+  experienceSection.appendChild(experienceDiv);
+}
+
+// Collecting and generating the resume
+document
+  .getElementById("resume-form")!
+  .addEventListener("submit", function (event) {
     event.preventDefault();
 
-    const formData: FormData = {
-      username: (document.getElementById("username") as HTMLInputElement).value,
+    // Collect education data
+    const educationElements = document.querySelectorAll(".education-entry");
+    educationEntries = Array.from(educationElements).map((element) => {
+      const degree = (element.querySelector(".degree") as HTMLInputElement)
+        .value;
+      const institution = (
+        element.querySelector(".institution") as HTMLInputElement
+      ).value;
+      const gradYear = Number(
+        (element.querySelector(".gradYear") as HTMLInputElement).value
+      );
+      return { degree, institution, gradYear };
+    });
+
+    // Collect work experience data
+    const experienceElements = document.querySelectorAll(".experience-entry");
+    experienceEntries = Array.from(experienceElements).map((element) => {
+      const jobTitle = (element.querySelector(".jobTitle") as HTMLInputElement)
+        .value;
+      const company = (element.querySelector(".company") as HTMLInputElement)
+        .value;
+      const years = Number(
+        (element.querySelector(".years") as HTMLInputElement).value
+      );
+      return { jobTitle, company, years };
+    });
+
+    const resumeData: ResumeData = {
       name: (document.getElementById("name") as HTMLInputElement).value,
       email: (document.getElementById("email") as HTMLInputElement).value,
-      education: (document.getElementById("education") as HTMLTextAreaElement)
-        .value,
-      workExperience: (
-        document.getElementById("workExperience") as HTMLTextAreaElement
-      ).value,
-      skills: (document.getElementById("skills") as HTMLTextAreaElement).value,
+      education: educationEntries,
+      experience: experienceEntries,
+      skills: (document.getElementById("skills") as HTMLInputElement).value,
     };
 
-    generateResume(formData);
-    generateShareableLink(formData.username);
-    generateDownloadLink();
+    generateResume(resumeData);
   });
 
-  function generateResume(data: FormData) {
-    resumePreview.innerHTML = `
-      <div class="editable" contenteditable="true" data-field="name">${data.name}</div>
-      <div class="editable" contenteditable="true" data-field="email">Email: ${data.email}</div>
-      <h2 class="editable" contenteditable="true" data-field="education">Education</h2>
-      <p class="editable" contenteditable="true" data-field="education">${data.education}</p>
-      <h2 class="editable" contenteditable="true" data-field="workExperience">Work Experience</h2>
-      <p class="editable" contenteditable="true" data-field="workExperience">${data.workExperience}</p>
-      <h2 class="editable" contenteditable="true" data-field="skills">Skills</h2>
-      <p class="editable" contenteditable="true" data-field="skills">${data.skills}</p>
-    `;
-    addEditListeners();
-  }
+function generateResume(data: ResumeData): void {
+  const resumeOutput = document.getElementById("resume-output")!;
+  resumeOutput.innerHTML = `
+    <div class="resume-header">
+      <h3 class="editable" data-field="name">${data.name}</h3>
+      <p class="editable" data-field="email">Email: ${data.email}</p>
+    </div>
 
-  function addEditListeners() {
-    const editableElements = document.querySelectorAll(".editable");
-    editableElements.forEach((element) => {
-      element.addEventListener("blur", () => {
-        const field = element.getAttribute("data-field") as keyof FormData;
-        updateFormField(field, element.textContent || "");
-      });
-    });
-  }
+    <div class="resume-section">
+      <h4>Education</h4>
+      <ul>
+        ${
+          data.education.length > 0
+            ? data.education
+                .map(
+                  (edu, index) => `
+                    <li class="education-entry">
+                      <div class="editable" data-field="degree" data-index="${index}">${edu.degree}</div>
+                      <div class="editable" data-field="institution" data-index="${index}">${edu.institution}</div>
+                      <div class="editable" data-field="gradYear" data-index="${index}">${edu.gradYear}</div>
+                    </li>`
+                )
+                .join("")
+            : "<li>No education details provided.</li>"
+        }
+      </ul>
+    </div>
 
-  function updateFormField(field: keyof FormData, value: string) {
-    const textarea = document.getElementById(field) as HTMLTextAreaElement;
-    if (textarea) {
-      textarea.value = value;
-    }
-  }
+    <div class="resume-section">
+      <h4>Work Experience</h4>
+      <ul>
+        ${
+          data.experience.length > 0
+            ? data.experience
+                .map(
+                  (exp, index) => `
+                    <li class="experience-entry">
+                      <div class="editable" data-field="jobTitle" data-index="${index}">${exp.jobTitle}</div>
+                      <div class="editable" data-field="company" data-index="${index}">${exp.company}</div>
+                      <div class="editable" data-field="years" data-index="${index}">${exp.years}</div>
+                    </li>`
+                )
+                .join("")
+            : "<li>No work experience provided.</li>"
+        }
+      </ul>
+    </div>
 
-  function generateShareableLink(username: string) {
-    const baseUrl = "http://example.vercel.app/resume";
-    const uniqueUrl = `${baseUrl}?user=${encodeURIComponent(username)}`;
-    shareDownloadLinks.innerHTML = `
-      <p>Share your resume:</p>
-      <a href="${uniqueUrl}" target="_blank">Click here to view your resume</a>
-    `;
-  }
+    <div class="resume-section">
+      <h4>Skills</h4>
+      <div class="editable skills" data-field="skills">
+        ${data.skills}
+      </div>
+    </div>
+    <div class="resume-footer">
+      <p>Generated by Dynamic Resume Builder</p>
+    </div>
+  `;
 
-  function generateDownloadLink() {
-    shareDownloadLinks.innerHTML += `
-      <button id="downloadBtn">Download as PDF</button>
-    `;
-
-    document.getElementById("downloadBtn")?.addEventListener("click", () => {
-      downloadResumeAsPDF();
-    });
-  }
-
-  function downloadResumeAsPDF() {
-    const pdf = new jsPDF();
-    pdf.text(resumePreview.innerText, 10, 10);
-    pdf.save("resume.pdf");
-  }
-});
+  // Add editable functionality to all sections
+  const editableElements = document.querySelectorAll(".editable");
+  editableElements.forEach((element) => {
+    element.addEventListener("click", () =>
+      makeEditable(element as HTMLElement)
+    );
+  });
+}
