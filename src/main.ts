@@ -1,3 +1,7 @@
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
+
+// Define interfaces for Resume data
 interface ResumeData {
   name: string;
   email: string;
@@ -18,18 +22,9 @@ interface Experience {
   years: number;
 }
 
+// Variables to hold education and experience entries
 let educationEntries: Education[] = [];
 let experienceEntries: Experience[] = [];
-
-// Function to make fields editable
-function makeEditable(element: HTMLElement) {
-  element.setAttribute("contenteditable", "true");
-  element.focus();
-
-  element.addEventListener("blur", () => {
-    element.removeAttribute("contenteditable");
-  });
-}
 
 // Adding education inputs
 const educationSection = document.getElementById("education-section")!;
@@ -69,7 +64,7 @@ function addExperienceInput(): void {
   experienceSection.appendChild(experienceDiv);
 }
 
-// Collecting and generating the resume
+// Form submission handling to generate the resume
 document
   .getElementById("resume-form")!
   .addEventListener("submit", function (event) {
@@ -102,6 +97,7 @@ document
       return { jobTitle, company, years };
     });
 
+    // Collect form data and generate resume
     const resumeData: ResumeData = {
       name: (document.getElementById("name") as HTMLInputElement).value,
       email: (document.getElementById("email") as HTMLInputElement).value,
@@ -113,12 +109,46 @@ document
     generateResume(resumeData);
   });
 
+// Generate a unique URL based on the user's name
+function generateUniqueURL(name: string): string {
+  const sanitizedUsername = name.toLowerCase().replace(/\s+/g, "-");
+  return `${window.location.origin}/resume/${sanitizedUsername}`;
+}
+
+// Generate PDF using jsPDF and html2canvas
+function generatePDF(): void {
+  const resumeOutput = document.getElementById("resume-output")!;
+  const shareableLink = document.querySelector(".resume-footer") as HTMLElement;
+
+  // Temporarily hide the shareable link section before generating the PDF
+  shareableLink.style.display = "none";
+
+  html2canvas(resumeOutput).then((canvas) => {
+    const pdf = new jsPDF("portrait", "px", "a4");
+    const imgData = canvas.toDataURL("image/png");
+    const imgWidth = pdf.internal.pageSize.getWidth();
+    const imgHeight = canvas.height * (imgWidth / canvas.width);
+
+    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+    pdf.save("resume.pdf");
+
+    // Show the shareable link section again after the PDF is generated
+    // @ts-ignore
+    shareableLink.style.display = "block";
+  });
+}
+
+// Generate the resume and provide shareable link and download option
 function generateResume(data: ResumeData): void {
   const resumeOutput = document.getElementById("resume-output")!;
+
+  // Generate unique URL based on name
+  const resumeURL = generateUniqueURL(data.name);
+
   resumeOutput.innerHTML = `
     <div class="resume-header">
-      <h3 class="editable" data-field="name">${data.name}</h3>
-      <p class="editable" data-field="email">Email: ${data.email}</p>
+      <h3>${data.name}</h3>
+      <p>Email: ${data.email}</p>
     </div>
 
     <div class="resume-section">
@@ -128,11 +158,11 @@ function generateResume(data: ResumeData): void {
           data.education.length > 0
             ? data.education
                 .map(
-                  (edu, index) => `
-                    <li class="education-entry">
-                      <div class="editable" data-field="degree" data-index="${index}">${edu.degree}</div>
-                      <div class="editable" data-field="institution" data-index="${index}">${edu.institution}</div>
-                      <div class="editable" data-field="gradYear" data-index="${index}">${edu.gradYear}</div>
+                  (edu) =>
+                    `<li class="education-entry">
+                     <div class="title">${edu.degree}</div>
+        <div class="school">${edu.institution}</div>
+        <div class="years">${edu.gradYear}</div>
                     </li>`
                 )
                 .join("")
@@ -148,11 +178,11 @@ function generateResume(data: ResumeData): void {
           data.experience.length > 0
             ? data.experience
                 .map(
-                  (exp, index) => `
-                    <li class="experience-entry">
-                      <div class="editable" data-field="jobTitle" data-index="${index}">${exp.jobTitle}</div>
-                      <div class="editable" data-field="company" data-index="${index}">${exp.company}</div>
-                      <div class="editable" data-field="years" data-index="${index}">${exp.years}</div>
+                  (exp) =>
+                    `<li class="experience-entry">
+                    <div class="title">${exp.jobTitle}</div>
+        <div class="company">${exp.company}</div>
+        <div class="years">${exp.years}</div>
                     </li>`
                 )
                 .join("")
@@ -163,20 +193,18 @@ function generateResume(data: ResumeData): void {
 
     <div class="resume-section">
       <h4>Skills</h4>
-      <div class="editable skills" data-field="skills">
-        ${data.skills}
-      </div>
+      <div class="skills">
+      <span class="skill-tag">${data.skills}</span>
     </div>
+    
     <div class="resume-footer">
       <p>Generated by Dynamic Resume Builder</p>
+      <p><strong>Shareable Link:</strong> <a href="${resumeURL}" target="_blank">${resumeURL}</a></p>
+      <button id="download-pdf-btn" class="download-btn">Download PDF</button>
     </div>
   `;
 
-  // Add editable functionality to all sections
-  const editableElements = document.querySelectorAll(".editable");
-  editableElements.forEach((element) => {
-    element.addEventListener("click", () =>
-      makeEditable(element as HTMLElement)
-    );
-  });
+  // Add event listener for PDF download
+  const downloadBtn = document.getElementById("download-pdf-btn")!;
+  downloadBtn.addEventListener("click", generatePDF);
 }
