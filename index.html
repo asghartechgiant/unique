@@ -3,47 +3,60 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Editable Resume Builder</title>
-    <link rel="stylesheet" href="/src/style.css" />
+    <title>Editable Dynamic Resume Builder</title>
+    <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
-    <div id="app">
-      <form id="resumeForm">
-        <div>
-          <label for="username">Usernaame:</label>
-          <input type="text" id="username" name="username" required />
-        </div>
-        <div>
+    <div class="container">
+      <h1>Dynamic Resume Builder</h1>
+      <div class="form-container">
+        <form id="resume-form">
+          <h2>Personal Information</h2>
           <label for="name">Name:</label>
-          <input type="text" id="name" name="name" required />
-        </div>
-        <div>
+          <input type="text" id="name" placeholder="John Doe" required />
           <label for="email">Email:</label>
-          <input type="email" id="email" name="email" required />
-        </div>
-        <div>
-          <label for="education">Education:</label>
-          <textarea id="education" name="education" required></textarea>
-        </div>
-        <div>
-          <label for="workExperience">Work Experience:</label>
-          <textarea
-            id="workExperience"
-            name="workExperience"
+          <input
+            type="email"
+            id="email"
+            placeholder="john@example.com"
             required
-          ></textarea>
-        </div>
-        <div>
-          <label for="skills">Skills:</label>
-          <textarea id="skills" name="skills" required></textarea>
-        </div>
-        <button type="submit">Generate Resume</button>
-      </form>
-      <div id="resumePreview"></div>
-      <div id="shareDownloadLinks"></div>
+          />
 
-      <div id="resumePreview"></div>
+          <h2>Education</h2>
+          <div id="education-section">
+            <!-- Education inputs will be appended here -->
+          </div>
+          <button id="add-education-btn" type="button" class="add-btn">
+            Add Education
+          </button>
+
+          <h2>Work Experience</h2>
+          <div id="experience-section">
+            <!-- Work experience inputs will be appended here -->
+          </div>
+          <button id="add-experience-btn" type="button" class="add-btn">
+            Add Work Experience
+          </button>
+
+          <h2>Skills</h2>
+          <label for="skills">Skills (Comma-separated):</label>
+          <input
+            type="text"
+            id="skills"
+            placeholder="JavaScript, TypeScript, React"
+            required
+          />
+
+          <button type="submit" id="generate-btn" class="submit-btn">
+            Generate Resume
+          </button>
+        </form>
+      </div>
+      <div class="resume-container">
+        <h2>Your Resume</h2>
+        <div id="resume-output" class="resume-output"></div>
+      </div>
     </div>
-    <script type="module" src="/src/main.ts"></script>
+    <script src="./src/main.ts" type="module"></script>
   </body>
 </html>
